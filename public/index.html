@@ -396,29 +396,738 @@
         }
         
         // Function to show add form
-        function showAddForm(section) {
-            // This is a simplified form - in a real application, you would create specific forms for each entity
+        async function showAddForm(section) {
             const contentSection = document.getElementById('content-section');
+            
+            // Create form fields based on the section
+            let formFields = '';
+            
+            switch(section) {
+                case 'airlines':
+                    formFields = `
+                        <div class="form-group">
+                            <label for="name">Name*</label>
+                            <input type="text" id="name" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="iata_code">IATA Code</label>
+                            <input type="text" id="iata_code" name="iata_code" maxlength="2">
+                        </div>
+                        <div class="form-group">
+                            <label for="country">Country</label>
+                            <input type="text" id="country" name="country">
+                        </div>
+                        <div class="form-group">
+                            <label for="founded_year">Founded Year</label>
+                            <input type="number" id="founded_year" name="founded_year" min="1900" max="2100">
+                        </div>
+                    `;
+                    break;
+                case 'airports':
+                    formFields = `
+                        <div class="form-group">
+                            <label for="name">Name*</label>
+                            <input type="text" id="name" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="iata_code">IATA Code</label>
+                            <input type="text" id="iata_code" name="iata_code" maxlength="3">
+                        </div>
+                        <div class="form-group">
+                            <label for="city">City</label>
+                            <input type="text" id="city" name="city">
+                        </div>
+                        <div class="form-group">
+                            <label for="country">Country</label>
+                            <input type="text" id="country" name="country">
+                        </div>
+                        <div class="form-group">
+                            <label for="latitude">Latitude</label>
+                            <input type="number" id="latitude" name="latitude" step="0.000001">
+                        </div>
+                        <div class="form-group">
+                            <label for="longitude">Longitude</label>
+                            <input type="number" id="longitude" name="longitude" step="0.000001">
+                        </div>
+                    `;
+                    break;
+                case 'aircraft':
+                    // Get airlines for dropdown
+                    const airlinesResponse = await fetch('/airlines');
+                    const airlinesData = await airlinesResponse.json();
+                    
+                    let airlineOptions = '<option value="">Select Airline</option>';
+                    airlinesData.data.forEach(airline => {
+                        airlineOptions += `<option value="${airline.id}">${airline.name}</option>`;
+                    });
+                    
+                    formFields = `
+                        <div class="form-group">
+                            <label for="registration_number">Registration Number*</label>
+                            <input type="text" id="registration_number" name="registration_number" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="model">Model*</label>
+                            <input type="text" id="model" name="model" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="manufacturer">Manufacturer</label>
+                            <input type="text" id="manufacturer" name="manufacturer">
+                        </div>
+                        <div class="form-group">
+                            <label for="capacity">Capacity</label>
+                            <input type="number" id="capacity" name="capacity" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="year_manufactured">Year Manufactured</label>
+                            <input type="number" id="year_manufactured" name="year_manufactured" min="1900" max="2100">
+                        </div>
+                        <div class="form-group">
+                            <label for="airline_id">Airline</label>
+                            <select id="airline_id" name="airline_id">
+                                ${airlineOptions}
+                            </select>
+                        </div>
+                    `;
+                    break;
+                case 'passengers':
+                    formFields = `
+                        <div class="form-group">
+                            <label for="first_name">First Name*</label>
+                            <input type="text" id="first_name" name="first_name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="last_name">Last Name*</label>
+                            <input type="text" id="last_name" name="last_name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email*</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="phone">Phone</label>
+                            <input type="text" id="phone" name="phone">
+                        </div>
+                        <div class="form-group">
+                            <label for="passport_number">Passport Number</label>
+                            <input type="text" id="passport_number" name="passport_number">
+                        </div>
+                        <div class="form-group">
+                            <label for="nationality">Nationality</label>
+                            <input type="text" id="nationality" name="nationality">
+                        </div>
+                        <div class="form-group">
+                            <label for="date_of_birth">Date of Birth</label>
+                            <input type="date" id="date_of_birth" name="date_of_birth">
+                        </div>
+                    `;
+                    break;
+                case 'flights':
+                    // Get airlines for dropdown
+                    const airlinesForFlightResponse = await fetch('/airlines');
+                    const airlinesForFlightData = await airlinesForFlightResponse.json();
+                    
+                    let airlineForFlightOptions = '<option value="">Select Airline</option>';
+                    airlinesForFlightData.data.forEach(airline => {
+                        airlineForFlightOptions += `<option value="${airline.id}">${airline.name}</option>`;
+                    });
+                    
+                    // Get airports for dropdown
+                    const airportsResponse = await fetch('/airports');
+                    const airportsData = await airportsResponse.json();
+                    
+                    let departureAirportOptions = '<option value="">Select Departure Airport</option>';
+                    let arrivalAirportOptions = '<option value="">Select Arrival Airport</option>';
+                    airportsData.data.forEach(airport => {
+                        const airportDisplay = `${airport.name} (${airport.iata_code})`;
+                        departureAirportOptions += `<option value="${airport.id}">${airportDisplay}</option>`;
+                        arrivalAirportOptions += `<option value="${airport.id}">${airportDisplay}</option>`;
+                    });
+                    
+                    // Get aircraft for dropdown (will be filtered by airline selection)
+                    const aircraftResponse = await fetch('/aircraft');
+                    const aircraftData = await aircraftResponse.json();
+                    
+                    let aircraftOptions = '<option value="">Select Aircraft</option>';
+                    aircraftData.data.forEach(aircraft => {
+                        aircraftOptions += `<option value="${aircraft.id}" data-airline="${aircraft.airline_id}">${aircraft.registration_number} - ${aircraft.model}</option>`;
+                    });
+                    
+                    formFields = `
+                        <div class="form-group">
+                            <label for="flight_number">Flight Number*</label>
+                            <input type="text" id="flight_number" name="flight_number" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="airline_id">Airline*</label>
+                            <select id="airline_id" name="airline_id" required onchange="filterAircraft()">
+                                ${airlineForFlightOptions}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="departure_airport_id">Departure Airport*</label>
+                            <select id="departure_airport_id" name="departure_airport_id" required>
+                                ${departureAirportOptions}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="arrival_airport_id">Arrival Airport*</label>
+                            <select id="arrival_airport_id" name="arrival_airport_id" required>
+                                ${arrivalAirportOptions}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="departure_time">Departure Time*</label>
+                            <input type="datetime-local" id="departure_time" name="departure_time" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="arrival_time">Arrival Time*</label>
+                            <input type="datetime-local" id="arrival_time" name="arrival_time" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="aircraft_id">Aircraft*</label>
+                            <select id="aircraft_id" name="aircraft_id" required>
+                                ${aircraftOptions}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="status">Status</label>
+                            <select id="status" name="status">
+                                <option value="Scheduled">Scheduled</option>
+                                <option value="Boarding">Boarding</option>
+                                <option value="Departed">Departed</option>
+                                <option value="In Air">In Air</option>
+                                <option value="Landed">Landed</option>
+                                <option value="Arrived">Arrived</option>
+                                <option value="Delayed">Delayed</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    `;
+                    
+                    // Add script to filter aircraft by airline
+                    setTimeout(() => {
+                        window.filterAircraft = function() {
+                            const airlineId = document.getElementById('airline_id').value;
+                            const aircraftSelect = document.getElementById('aircraft_id');
+                            const aircraftOptions = aircraftSelect.querySelectorAll('option');
+                            
+                            aircraftOptions.forEach(option => {
+                                if (option.value === '' || option.dataset.airline === airlineId) {
+                                    option.style.display = '';
+                                } else {
+                                    option.style.display = 'none';
+                                }
+                            });
+                            
+                            // Reset selection if current selection is not valid
+                            if (aircraftSelect.selectedOptions[0].style.display === 'none') {
+                                aircraftSelect.value = '';
+                            }
+                        };
+                    }, 100);
+                    
+                    break;
+                case 'bookings':
+                    // Get flights for dropdown
+                    const flightsResponse = await fetch('/flights');
+                    const flightsData = await flightsResponse.json();
+                    
+                    let flightOptions = '<option value="">Select Flight</option>';
+                    flightsData.data.forEach(flight => {
+                        const flightDisplay = `${flight.flight_number} - ${flight.airline_name} - ${flight.departure_code} to ${flight.arrival_code} (${new Date(flight.departure_time).toLocaleString()})`;
+                        flightOptions += `<option value="${flight.id}">${flightDisplay}</option>`;
+                    });
+                    
+                    // Get passengers for dropdown
+                    const passengersResponse = await fetch('/passengers');
+                    const passengersData = await passengersResponse.json();
+                    
+                    let passengerOptions = '<option value="">Select Passenger</option>';
+                    passengersData.data.forEach(passenger => {
+                        passengerOptions += `<option value="${passenger.id}">${passenger.first_name} ${passenger.last_name} - ${passenger.email}</option>`;
+                    });
+                    
+                    formFields = `
+                        <div class="form-group">
+                            <label for="flight_id">Flight*</label>
+                            <select id="flight_id" name="flight_id" required>
+                                ${flightOptions}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="passenger_id">Passenger*</label>
+                            <select id="passenger_id" name="passenger_id" required>
+                                ${passengerOptions}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="seat_number">Seat Number*</label>
+                            <input type="text" id="seat_number" name="seat_number" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="booking_status">Booking Status</label>
+                            <select id="booking_status" name="booking_status">
+                                <option value="Confirmed">Confirmed</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Cancelled">Cancelled</option>
+                                <option value="Checked In">Checked In</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="price">Price</label>
+                            <input type="number" id="price" name="price" step="0.01" min="0">
+                        </div>
+                    `;
+                    break;
+                case 'crew-members':
+                    // Get airlines for dropdown
+                    const airlinesForCrewResponse = await fetch('/airlines');
+                    const airlinesForCrewData = await airlinesForCrewResponse.json();
+                    
+                    let airlineForCrewOptions = '<option value="">Select Airline</option>';
+                    airlinesForCrewData.data.forEach(airline => {
+                        airlineForCrewOptions += `<option value="${airline.id}">${airline.name}</option>`;
+                    });
+                    
+                    formFields = `
+                        <div class="form-group">
+                            <label for="first_name">First Name*</label>
+                            <input type="text" id="first_name" name="first_name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="last_name">Last Name*</label>
+                            <input type="text" id="last_name" name="last_name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="position">Position*</label>
+                            <select id="position" name="position" required>
+                                <option value="Captain">Captain</option>
+                                <option value="First Officer">First Officer</option>
+                                <option value="Flight Engineer">Flight Engineer</option>
+                                <option value="Flight Attendant">Flight Attendant</option>
+                                <option value="Lead Flight Attendant">Lead Flight Attendant</option>
+                                <option value="Purser">Purser</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="airline_id">Airline</label>
+                            <select id="airline_id" name="airline_id">
+                                ${airlineForCrewOptions}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="license_number">License Number</label>
+                            <input type="text" id="license_number" name="license_number">
+                        </div>
+                        <div class="form-group">
+                            <label for="experience_years">Experience (Years)</label>
+                            <input type="number" id="experience_years" name="experience_years" min="0">
+                        </div>
+                    `;
+                    break;
+                default:
+                    formFields = `<p>Form not implemented for this entity type yet.</p>`;
+            }
+            
             contentSection.innerHTML = `
                 <div class="card">
                     <h2>Add New ${formatHeader(section)}</h2>
                     <button class="btn" onclick="showSection('${section}')">Back to List</button>
-                    <p>This is a placeholder for the add form. In a real application, you would implement specific forms for each entity type.</p>
+                    
+                    <form id="addForm" onsubmit="submitAddForm('${section}', event)">
+                        ${formFields}
+                        <div class="form-group">
+                            <button type="submit" class="btn">Save</button>
+                        </div>
+                    </form>
                 </div>
             `;
         }
         
         // Function to show edit form
-        function showEditForm(section, id) {
-            // This is a simplified form - in a real application, you would create specific forms for each entity
-            const contentSection = document.getElementById('content-section');
-            contentSection.innerHTML = `
-                <div class="card">
-                    <h2>Edit ${formatHeader(section)}</h2>
-                    <button class="btn" onclick="showSection('${section}')">Back to List</button>
-                    <p>This is a placeholder for the edit form. In a real application, you would implement specific forms for each entity type.</p>
-                </div>
-            `;
+        async function showEditForm(section, id) {
+            showLoading(true);
+            try {
+                // Fetch the item data
+                const response = await fetch(`/${section}/${id}`);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch ${section.slice(0, -1)} data`);
+                }
+                
+                const data = await response.json();
+                const item = data.data;
+                
+                const contentSection = document.getElementById('content-section');
+                
+                // Create form fields based on the section
+                let formFields = '';
+                
+                switch(section) {
+                    case 'airlines':
+                        formFields = `
+                            <div class="form-group">
+                                <label for="name">Name*</label>
+                                <input type="text" id="name" name="name" value="${item.name || ''}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="iata_code">IATA Code</label>
+                                <input type="text" id="iata_code" name="iata_code" value="${item.iata_code || ''}" maxlength="2">
+                            </div>
+                            <div class="form-group">
+                                <label for="country">Country</label>
+                                <input type="text" id="country" name="country" value="${item.country || ''}">
+                            </div>
+                            <div class="form-group">
+                                <label for="founded_year">Founded Year</label>
+                                <input type="number" id="founded_year" name="founded_year" value="${item.founded_year || ''}" min="1900" max="2100">
+                            </div>
+                        `;
+                        break;
+                    case 'airports':
+                        formFields = `
+                            <div class="form-group">
+                                <label for="name">Name*</label>
+                                <input type="text" id="name" name="name" value="${item.name || ''}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="iata_code">IATA Code</label>
+                                <input type="text" id="iata_code" name="iata_code" value="${item.iata_code || ''}" maxlength="3">
+                            </div>
+                            <div class="form-group">
+                                <label for="city">City</label>
+                                <input type="text" id="city" name="city" value="${item.city || ''}">
+                            </div>
+                            <div class="form-group">
+                                <label for="country">Country</label>
+                                <input type="text" id="country" name="country" value="${item.country || ''}">
+                            </div>
+                            <div class="form-group">
+                                <label for="latitude">Latitude</label>
+                                <input type="number" id="latitude" name="latitude" value="${item.latitude || ''}" step="0.000001">
+                            </div>
+                            <div class="form-group">
+                                <label for="longitude">Longitude</label>
+                                <input type="number" id="longitude" name="longitude" value="${item.longitude || ''}" step="0.000001">
+                            </div>
+                        `;
+                        break;
+                    case 'aircraft':
+                        // Get airlines for dropdown
+                        const airlinesResponse = await fetch('/airlines');
+                        const airlinesData = await airlinesResponse.json();
+                        
+                        let airlineOptions = '<option value="">Select Airline</option>';
+                        airlinesData.data.forEach(airline => {
+                            const selected = airline.id === item.airline_id ? 'selected' : '';
+                            airlineOptions += `<option value="${airline.id}" ${selected}>${airline.name}</option>`;
+                        });
+                        
+                        formFields = `
+                            <div class="form-group">
+                                <label for="registration_number">Registration Number*</label>
+                                <input type="text" id="registration_number" name="registration_number" value="${item.registration_number || ''}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="model">Model*</label>
+                                <input type="text" id="model" name="model" value="${item.model || ''}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="manufacturer">Manufacturer</label>
+                                <input type="text" id="manufacturer" name="manufacturer" value="${item.manufacturer || ''}">
+                            </div>
+                            <div class="form-group">
+                                <label for="capacity">Capacity</label>
+                                <input type="number" id="capacity" name="capacity" value="${item.capacity || ''}" min="1">
+                            </div>
+                            <div class="form-group">
+                                <label for="year_manufactured">Year Manufactured</label>
+                                <input type="number" id="year_manufactured" name="year_manufactured" value="${item.year_manufactured || ''}" min="1900" max="2100">
+                            </div>
+                            <div class="form-group">
+                                <label for="airline_id">Airline</label>
+                                <select id="airline_id" name="airline_id">
+                                    ${airlineOptions}
+                                </select>
+                            </div>
+                        `;
+                        break;
+                    case 'passengers':
+                        formFields = `
+                            <div class="form-group">
+                                <label for="first_name">First Name*</label>
+                                <input type="text" id="first_name" name="first_name" value="${item.first_name || ''}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="last_name">Last Name*</label>
+                                <input type="text" id="last_name" name="last_name" value="${item.last_name || ''}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="email">Email*</label>
+                                <input type="email" id="email" name="email" value="${item.email || ''}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="phone">Phone</label>
+                                <input type="text" id="phone" name="phone" value="${item.phone || ''}">
+                            </div>
+                            <div class="form-group">
+                                <label for="passport_number">Passport Number</label>
+                                <input type="text" id="passport_number" name="passport_number" value="${item.passport_number || ''}">
+                            </div>
+                            <div class="form-group">
+                                <label for="nationality">Nationality</label>
+                                <input type="text" id="nationality" name="nationality" value="${item.nationality || ''}">
+                            </div>
+                            <div class="form-group">
+                                <label for="date_of_birth">Date of Birth</label>
+                                <input type="date" id="date_of_birth" name="date_of_birth" value="${item.date_of_birth ? item.date_of_birth.split('T')[0] : ''}">
+                            </div>
+                        `;
+                        break;
+                    case 'flights':
+                        // Get airlines for dropdown
+                        const airlinesForFlightResponse = await fetch('/airlines');
+                        const airlinesForFlightData = await airlinesForFlightResponse.json();
+                        
+                        let airlineForFlightOptions = '<option value="">Select Airline</option>';
+                        airlinesForFlightData.data.forEach(airline => {
+                            const selected = airline.id === item.airline_id ? 'selected' : '';
+                            airlineForFlightOptions += `<option value="${airline.id}" ${selected}>${airline.name}</option>`;
+                        });
+                        
+                        // Get airports for dropdown
+                        const airportsResponse = await fetch('/airports');
+                        const airportsData = await airportsResponse.json();
+                        
+                        let departureAirportOptions = '<option value="">Select Departure Airport</option>';
+                        let arrivalAirportOptions = '<option value="">Select Arrival Airport</option>';
+                        airportsData.data.forEach(airport => {
+                            const airportDisplay = `${airport.name} (${airport.iata_code})`;
+                            const departureSelected = airport.id === item.departure_airport_id ? 'selected' : '';
+                            const arrivalSelected = airport.id === item.arrival_airport_id ? 'selected' : '';
+                            departureAirportOptions += `<option value="${airport.id}" ${departureSelected}>${airportDisplay}</option>`;
+                            arrivalAirportOptions += `<option value="${airport.id}" ${arrivalSelected}>${airportDisplay}</option>`;
+                        });
+                        
+                        // Get aircraft for dropdown
+                        const aircraftResponse = await fetch('/aircraft');
+                        const aircraftData = await aircraftResponse.json();
+                        
+                        let aircraftOptions = '<option value="">Select Aircraft</option>';
+                        aircraftData.data.forEach(aircraft => {
+                            const selected = aircraft.id === item.aircraft_id ? 'selected' : '';
+                            aircraftOptions += `<option value="${aircraft.id}" data-airline="${aircraft.airline_id}" ${selected}>${aircraft.registration_number} - ${aircraft.model}</option>`;
+                        });
+                        
+                        // Format datetime for input
+                        const formatDateTime = (dateStr) => {
+                            if (!dateStr) return '';
+                            const date = new Date(dateStr);
+                            return date.toISOString().slice(0, 16);
+                        };
+                        
+                        formFields = `
+                            <div class="form-group">
+                                <label for="flight_number">Flight Number*</label>
+                                <input type="text" id="flight_number" name="flight_number" value="${item.flight_number || ''}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="airline_id">Airline*</label>
+                                <select id="airline_id" name="airline_id" required onchange="filterAircraft()">
+                                    ${airlineForFlightOptions}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="departure_airport_id">Departure Airport*</label>
+                                <select id="departure_airport_id" name="departure_airport_id" required>
+                                    ${departureAirportOptions}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="arrival_airport_id">Arrival Airport*</label>
+                                <select id="arrival_airport_id" name="arrival_airport_id" required>
+                                    ${arrivalAirportOptions}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="departure_time">Departure Time*</label>
+                                <input type="datetime-local" id="departure_time" name="departure_time" value="${formatDateTime(item.departure_time)}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="arrival_time">Arrival Time*</label>
+                                <input type="datetime-local" id="arrival_time" name="arrival_time" value="${formatDateTime(item.arrival_time)}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="aircraft_id">Aircraft*</label>
+                                <select id="aircraft_id" name="aircraft_id" required>
+                                    ${aircraftOptions}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="status">Status</label>
+                                <select id="status" name="status">
+                                    <option value="Scheduled" ${item.status === 'Scheduled' ? 'selected' : ''}>Scheduled</option>
+                                    <option value="Boarding" ${item.status === 'Boarding' ? 'selected' : ''}>Boarding</option>
+                                    <option value="Departed" ${item.status === 'Departed' ? 'selected' : ''}>Departed</option>
+                                    <option value="In Air" ${item.status === 'In Air' ? 'selected' : ''}>In Air</option>
+                                    <option value="Landed" ${item.status === 'Landed' ? 'selected' : ''}>Landed</option>
+                                    <option value="Arrived" ${item.status === 'Arrived' ? 'selected' : ''}>Arrived</option>
+                                    <option value="Delayed" ${item.status === 'Delayed' ? 'selected' : ''}>Delayed</option>
+                                    <option value="Cancelled" ${item.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+                                </select>
+                            </div>
+                        `;
+                        
+                        // Add script to filter aircraft by airline
+                        setTimeout(() => {
+                            window.filterAircraft = function() {
+                                const airlineId = document.getElementById('airline_id').value;
+                                const aircraftSelect = document.getElementById('aircraft_id');
+                                const aircraftOptions = aircraftSelect.querySelectorAll('option');
+                                
+                                aircraftOptions.forEach(option => {
+                                    if (option.value === '' || option.dataset.airline === airlineId) {
+                                        option.style.display = '';
+                                    } else {
+                                        option.style.display = 'none';
+                                    }
+                                });
+                                
+                                // Reset selection if current selection is not valid
+                                if (aircraftSelect.selectedOptions[0].style.display === 'none') {
+                                    aircraftSelect.value = '';
+                                }
+                            };
+                            
+                            // Call once to initialize
+                            filterAircraft();
+                        }, 100);
+                        
+                        break;
+                    case 'bookings':
+                        // Get flights for dropdown
+                        const flightsResponse = await fetch('/flights');
+                        const flightsData = await flightsResponse.json();
+                        
+                        let flightOptions = '<option value="">Select Flight</option>';
+                        flightsData.data.forEach(flight => {
+                            const flightDisplay = `${flight.flight_number} - ${flight.airline_name} - ${flight.departure_code} to ${flight.arrival_code} (${new Date(flight.departure_time).toLocaleString()})`;
+                            const selected = flight.id === item.flight_id ? 'selected' : '';
+                            flightOptions += `<option value="${flight.id}" ${selected}>${flightDisplay}</option>`;
+                        });
+                        
+                        // Get passengers for dropdown
+                        const passengersResponse = await fetch('/passengers');
+                        const passengersData = await passengersResponse.json();
+                        
+                        let passengerOptions = '<option value="">Select Passenger</option>';
+                        passengersData.data.forEach(passenger => {
+                            const selected = passenger.id === item.passenger_id ? 'selected' : '';
+                            passengerOptions += `<option value="${passenger.id}" ${selected}>${passenger.first_name} ${passenger.last_name} - ${passenger.email}</option>`;
+                        });
+                        
+                        formFields = `
+                            <div class="form-group">
+                                <label for="flight_id">Flight*</label>
+                                <select id="flight_id" name="flight_id" required>
+                                    ${flightOptions}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="passenger_id">Passenger*</label>
+                                <select id="passenger_id" name="passenger_id" required>
+                                    ${passengerOptions}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="seat_number">Seat Number*</label>
+                                <input type="text" id="seat_number" name="seat_number" value="${item.seat_number || ''}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="booking_status">Booking Status</label>
+                                <select id="booking_status" name="booking_status">
+                                    <option value="Confirmed" ${item.booking_status === 'Confirmed' ? 'selected' : ''}>Confirmed</option>
+                                    <option value="Pending" ${item.booking_status === 'Pending' ? 'selected' : ''}>Pending</option>
+                                    <option value="Cancelled" ${item.booking_status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+                                    <option value="Checked In" ${item.booking_status === 'Checked In' ? 'selected' : ''}>Checked In</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="price">Price</label>
+                                <input type="number" id="price" name="price" step="0.01" min="0" value="${item.price || ''}">
+                            </div>
+                        `;
+                        break;
+                    case 'crew-members':
+                        // Get airlines for dropdown
+                        const airlinesForCrewResponse = await fetch('/airlines');
+                        const airlinesForCrewData = await airlinesForCrewResponse.json();
+                        
+                        let airlineForCrewOptions = '<option value="">Select Airline</option>';
+                        airlinesForCrewData.data.forEach(airline => {
+                            const selected = airline.id === item.airline_id ? 'selected' : '';
+                            airlineForCrewOptions += `<option value="${airline.id}" ${selected}>${airline.name}</option>`;
+                        });
+                        
+                        formFields = `
+                            <div class="form-group">
+                                <label for="first_name">First Name*</label>
+                                <input type="text" id="first_name" name="first_name" value="${item.first_name || ''}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="last_name">Last Name*</label>
+                                <input type="text" id="last_name" name="last_name" value="${item.last_name || ''}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="position">Position*</label>
+                                <select id="position" name="position" required>
+                                    <option value="Captain" ${item.position === 'Captain' ? 'selected' : ''}>Captain</option>
+                                    <option value="First Officer" ${item.position === 'First Officer' ? 'selected' : ''}>First Officer</option>
+                                    <option value="Flight Engineer" ${item.position === 'Flight Engineer' ? 'selected' : ''}>Flight Engineer</option>
+                                    <option value="Flight Attendant" ${item.position === 'Flight Attendant' ? 'selected' : ''}>Flight Attendant</option>
+                                    <option value="Lead Flight Attendant" ${item.position === 'Lead Flight Attendant' ? 'selected' : ''}>Lead Flight Attendant</option>
+                                    <option value="Purser" ${item.position === 'Purser' ? 'selected' : ''}>Purser</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="airline_id">Airline</label>
+                                <select id="airline_id" name="airline_id">
+                                    ${airlineForCrewOptions}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="license_number">License Number</label>
+                                <input type="text" id="license_number" name="license_number" value="${item.license_number || ''}">
+                            </div>
+                            <div class="form-group">
+                                <label for="experience_years">Experience (Years)</label>
+                                <input type="number" id="experience_years" name="experience_years" min="0" value="${item.experience_years || ''}">
+                            </div>
+                        `;
+                        break;
+                    default:
+                        formFields = `<p>Form not implemented for this entity type yet.</p>`;
+                }
+                
+                contentSection.innerHTML = `
+                    <div class="card">
+                        <h2>Edit ${formatHeader(section)}</h2>
+                        <button class="btn" onclick="showSection('${section}')">Back to List</button>
+                        
+                        <form id="editForm" onsubmit="submitEditForm('${section}', '${id}', event)">
+                            ${formFields}
+                            <div class="form-group">
+                                <button type="submit" class="btn">Update</button>
+                            </div>
+                        </form>
+                    </div>
+                `;
+                
+                showLoading(false);
+            } catch (error) {
+                showLoading(false);
+                showError(`Error: ${error.message}`);
+            }
         }
         
         // Function to delete an item
@@ -436,6 +1145,88 @@
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(errorData.message || `Failed to delete ${section.slice(0, -1)}`);
+                }
+                
+                showLoading(false);
+                showSection(section); // Refresh the list
+            } catch (error) {
+                showLoading(false);
+                showError(`Error: ${error.message}`);
+            }
+        }
+        
+        // Function to submit add form
+        async function submitAddForm(section, event) {
+            event.preventDefault();
+            
+            showLoading(true);
+            try {
+                // Get form data
+                const form = document.getElementById('addForm');
+                const formData = new FormData(form);
+                const data = {};
+                
+                // Convert FormData to JSON object
+                formData.forEach((value, key) => {
+                    // Skip empty values
+                    if (value !== '') {
+                        data[key] = value;
+                    }
+                });
+                
+                // Send POST request
+                const response = await fetch(`/${section}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || `Failed to create ${section.slice(0, -1)}`);
+                }
+                
+                showLoading(false);
+                showSection(section); // Refresh the list
+            } catch (error) {
+                showLoading(false);
+                showError(`Error: ${error.message}`);
+            }
+        }
+        
+        // Function to submit edit form
+        async function submitEditForm(section, id, event) {
+            event.preventDefault();
+            
+            showLoading(true);
+            try {
+                // Get form data
+                const form = document.getElementById('editForm');
+                const formData = new FormData(form);
+                const data = {};
+                
+                // Convert FormData to JSON object
+                formData.forEach((value, key) => {
+                    // Skip empty values
+                    if (value !== '') {
+                        data[key] = value;
+                    }
+                });
+                
+                // Send PUT request
+                const response = await fetch(`/${section}/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || `Failed to update ${section.slice(0, -1)}`);
                 }
                 
                 showLoading(false);
